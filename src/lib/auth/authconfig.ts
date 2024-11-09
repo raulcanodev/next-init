@@ -29,7 +29,7 @@ export const authOptions: NextAuthOptionsExtended = {
     verifyRequest: '/auth/verify-request',
     signOut: '/auth/signout',
     error: '/auth/error',
-    newUser: '/dashboard/page',
+    newUser: config.auth.signin.redirect,
   },
 
   providers: [
@@ -95,7 +95,7 @@ export const authOptions: NextAuthOptionsExtended = {
     async redirect({ url, baseUrl }) {
 
       if (url.startsWith(baseUrl)) {
-        return `${baseUrl}/dashboard/page`;
+        return `${baseUrl}${config.auth.signin.redirect}`;
       }
       return baseUrl;
     }

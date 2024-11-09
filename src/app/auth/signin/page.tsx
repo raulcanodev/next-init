@@ -15,7 +15,7 @@ export default function SignIn() {
           Welcome to {config.appName}
         </h2>
         <p className="text-center mt-3 text-muted-foreground">
-          {config.auth.signin.modalInfo}
+          {config.auth.signin.description}
         </p>
       </div>
 

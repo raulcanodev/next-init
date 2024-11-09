@@ -36,7 +36,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <Separator />
       <div className="p-2">
         <Button variant="ghost" className="w-full justify-start text-secondary-foreground" asChild>
-          <Link href="/logout">
+          <Link href="/auth/signout">
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Link>
@@ -66,7 +66,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Sidebar />
             </SheetContent>
           </Sheet>
-          <div className="font-bold">noobform</div>
+          <div className="font-bold">{config.appName}</div>
         </header>
 
         {/* Main Content */}

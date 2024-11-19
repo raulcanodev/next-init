@@ -24,7 +24,7 @@ const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://localhost:3000/";
   
-  export const SignInEmail = ({ userFirstname = "User", url, identifier }: SignInEmailProps) => (
+  export const SignInEmail = ({ url, identifier }: SignInEmailProps) => (
   <Html>
     <Head />
     <Preview>Sign in to {config.appName} - Your personal link is ready</Preview>

@@ -1,28 +1,29 @@
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
+import LinkedIn from 'next-auth/providers/linkedin';
+import EmailProvider from 'next-auth/providers/email';
 import type { NextAuthOptions } from 'next-auth';
-import config from '@/config';
-import EmailProvider, { SendVerificationRequestParams } from 'next-auth/providers/email';
-import { Resend } from 'resend';
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
-import client from '@/lib/db/mongoclient';
+import type { Adapter } from 'next-auth/adapters';
+import { Resend } from 'resend';
+import { clientPromise } from '@/lib/db/mongoclient';
+import { User } from '@/models/User';
+import config from '@/config';
 import { SignInEmail } from '@/email-template/emails/signin-email';
+import { IUser } from '@/types/user';
 
-if (
-  !process.env.GITHUB_CLIENT_ID ||
-  !process.env.GITHUB_CLIENT_SECRET ||
-  !process.env.GOOGLE_CLIENT_ID ||
-  !process.env.GOOGLE_CLIENT_SECRET
-) {
-  throw new Error('Auth required env variables are not set');
-}
+// if (
+//   !process.env.GITHUB_CLIENT_ID ||
+//   !process.env.GITHUB_CLIENT_SECRET ||
+//   !process.env.GOOGLE_CLIENT_ID ||
+//   !process.env.GOOGLE_CLIENT_SECRET ||
+//   !process.env.RESEND_API_KEY
+// ) {
+//   throw new Error('Auth required env variables are not set');
+// }
 
-interface NextAuthOptionsExtended extends NextAuthOptions {
-  adapter: ReturnType<typeof MongoDBAdapter>;
-}
-
-export const authOptions: NextAuthOptionsExtended = {
-  adapter: MongoDBAdapter(client),
+export const authOptions: NextAuthOptions = {
+  adapter: MongoDBAdapter(clientPromise) as Adapter,
 
   pages: {
     signIn: '/auth/signin',
@@ -34,72 +35,100 @@ export const authOptions: NextAuthOptionsExtended = {
 
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      /**
-       * We set to true allowDangerousEmailAccountLinking for 2 reasons:
-       * 1. We want to allow users to link their email account to their Google account
-       * 2. By setting this to false, we get an security error:
-       *  "To confirm your identity, sign in with the same account you used originally."
-       *  This is to protect your account and prevent unauthorized access, we can set to true because we are using a
-       *  custom email provider, people who doesn't have access to the email account can't login.
-       */
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       allowDangerousEmailAccountLinking: true,
     }),
     GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID as string,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
+    }),
+    LinkedIn({
+      clientId: process.env.LINKEDIN_CLIENT_ID!,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       allowDangerousEmailAccountLinking: true,
     }),
     EmailProvider({
       from: config.email.noreply,
-      sendVerificationRequest: async (params: SendVerificationRequestParams) => {
-        const { identifier, url, provider } = params;
+      sendVerificationRequest: async ({ identifier, url, provider }) => {
         try {
           const resend = new Resend(process.env.RESEND_API_KEY!);
           await resend.emails.send({
-            from: provider.from,
+            from: provider.from!,
             to: identifier,
             subject: config.email.signin.subject,
             react: SignInEmail({ url, identifier }),
           });
         } catch (error) {
-          console.log({ error });
+          console.error('Failed to send verification email:', error);
         }
       },
     }),
   ],
 
-  session: {
-    strategy: 'jwt',
-  },
+  session: { strategy: 'jwt' },
+
   callbacks: {
+    async signIn({ user, account }) {
+      if (!user.email) return false;
+
+      try {
+        let dbUser = await User.findOne({ email: user.email });
+        if (!dbUser) {
+          const newUser: Partial<IUser> = {
+            email: user.email,
+            name: user.name || '',
+            avatar: user.image || 'default-avatar.png',
+            provider: account?.provider || 'email',
+            subscriptionPlan: 'free',
+          };
+          dbUser = await User.create(newUser);
+        }
+
+        // Update last login for all sign-in methods
+        await User.findByIdAndUpdate(dbUser._id, {
+          lastLogin: new Date(),
+          // Update name and avatar if provided and different from stored values
+          ...(user.name && user.name !== dbUser.name && { name: user.name }),
+          ...(user.image && user.image !== dbUser.avatar && { avatar: user.image }),
+        });
+
+        return true;
+      } catch (error) {
+        console.error('Error in signIn callback:', error);
+        return false;
+      }
+    },
     async jwt({ token, user }) {
       if (user) {
-        return {
-          ...token,
-          id: user.id,
-        }
+        token.id = user.id;
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = user.image;
+        token.subscriptionPlan = user.subscriptionPlan;
       }
       return token;
     },
     async session({ session, token }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id,
-        },
+      try {
+        if (session.user) {
+          session.user.id = token.id as string;
+          session.user.email = token.email as string;
+          session.user.name = token.name as string;
+          session.user.image = token.picture as string;
+          session.user.subscriptionPlan = token.subscriptionPlan as string;
+        }
+      } catch (error) {
+        console.error('Error in session callback:', error);
       }
+
+      return session;
     },
     async redirect({ url, baseUrl }) {
-
-      if (url.startsWith(baseUrl)) {
-        return `${baseUrl}${config.auth.signin.redirect}`;
-      }
-      return baseUrl;
-    }
+      return url.startsWith(baseUrl) ? `${baseUrl}${config.auth.signin.redirect}` : baseUrl;
+    },
   },
 
-  debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV !== 'production',
 };

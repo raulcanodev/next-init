@@ -3,19 +3,19 @@ const config = {
   appDescription: 'Next Init, free Next.js 15 boilerplate, with Tailwind CSS, TypesScript, ESLint, Prettier, MongoDB, ShadcnUI, Next Auth, and more.',
   domainName: 'next-init.vercel.app',
   domainUrl: process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://nextinit.dev',
-  defaultTheme: 'dark',
+  defaultTheme: 'dark', // 'dark' or 'light' NOTE: Test in a private page
+  
   social: {
     twitter: 'https://twitter.com',
     github: 'https://github.com',
     linkedin: 'https://linkedin.com',
   },
   auth: {
+    // IMPORTANT: Please go to middleware.ts and add or remove routes that require authentication
     signin: {
       description: 'The best boilerplate for Next.js 15',
-      redirect: '/dashboard', // Redirect to dashboard after sign in
+      redirect: '/dashboard', // Redirect to dashboard after sign in -> 'authconfig.ts'
     },
-    authRoutes: ['/auth/signin', '/auth/signup', '/auth/verify-request'], 
-    protectedRoutes: ['/dashboard'], // Can't access these routes without being authenticated
   },
   lemonsqueezy: {
     price: '9€',
@@ -34,7 +34,7 @@ const config = {
   email: {
     // https://resend.com/
     // @/email-template/emails/signin-email.tsx
-    noreply: 'Next Init <noreply@yourdomain.com>', // Change @yourdomain.com with your domain
+    noreply: 'Next Init <noreply@cvpage.to>', // Change @yourdomain.com with your domain
     signin: {
       subject: `Login Link to your Next Init Account.`,
       content: 'Please click the magic button below to sign in to your account.',

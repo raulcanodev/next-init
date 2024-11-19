@@ -4,6 +4,7 @@ import {
   GoogleSignInButton,
   GithubSignInButton,
   EmailSignIn,
+  LinkedInSignInButton,
 } from '../components';
 import config from '@/config';
 
@@ -24,6 +25,7 @@ export default function SignIn() {
       <div className="space-y-3">
         <GithubSignInButton />
         <GoogleSignInButton />
+        <LinkedInSignInButton />
         <EmailSignIn />
         <AcceptConditions />
       </div>

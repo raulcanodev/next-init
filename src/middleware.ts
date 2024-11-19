@@ -3,42 +3,51 @@ import type { NextRequest } from "next/server";
 import { getToken } from 'next-auth/jwt';
 import * as appConfig from "@/config";
 
-export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request });
-  const isAuthenticated = !!token;
-
-  const protectedRoutes = appConfig.default.auth.protectedRoutes || ['/dashboard', '/profile'];
-  const authRoutes = appConfig.default.auth.authRoutes || ['/auth/signin', '/auth/signup', '/auth/verify-request'];
-
-  const isProtectedRoute = protectedRoutes.some(route => 
-    request.nextUrl.pathname.startsWith(route)
-  );
-  const isAuthRoute = authRoutes.some(route => 
-    request.nextUrl.pathname.startsWith(route)
-  );
-
-  // Helper function to create full URLs
-  const createUrl = (path: string) => new URL(path, appConfig.default.domainUrl);
-
-  if (!isAuthenticated && isProtectedRoute) {
-    // Redirect to login if not authenticated and trying to access a protected route
-    const signinUrl = createUrl('/auth/signin');
-    signinUrl.searchParams.set('callbackUrl', request.url);
-    return NextResponse.redirect(signinUrl);
-  }
-
-  if (isAuthenticated && isAuthRoute) {
-    // Redirect to dashboard if authenticated and trying to access auth page
-    return NextResponse.redirect(createUrl('/dashboard'));
-  }
-
-  return NextResponse.next();
+function createUrl(path: string, baseUrl: string): URL {
+  return new URL(path, baseUrl);
 }
 
-// Apply middleware to specific routes
+export async function middleware(request: NextRequest) {
+  try {
+    const token = await getToken({ req: request });
+    const isAuthenticated = !!token;
+
+    // Add here the routes that require authentication
+    const protectedRoutes: string[] = ['/dashboard', '/profile'];
+    
+    // Here the routes that are related to authentication, if you are authenticated you can't access them
+    const authRoutes: string[] = ['/auth/signin', '/auth/signup', '/auth/verify-request'];
+
+    const isProtectedRoute = protectedRoutes.some(route => 
+      request.nextUrl.pathname.startsWith(route)
+    );
+    const isAuthRoute = authRoutes.some(route => 
+      request.nextUrl.pathname.startsWith(route)
+    );
+
+    if (!isAuthenticated && isProtectedRoute) {
+      const signinUrl = createUrl('/auth/signin', appConfig.default.domainUrl);
+      signinUrl.searchParams.set('callbackUrl', request.url);
+      return NextResponse.redirect(signinUrl);
+    }
+
+    if (isAuthenticated && isAuthRoute) {
+      return NextResponse.redirect(createUrl('/dashboard', appConfig.default.domainUrl));
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error('Middleware error:', error);
+    return NextResponse.redirect(createUrl('/auth/error', appConfig.default.domainUrl));
+  }
+}
+
 export const config = {
+  
+  // Add here the routes that require authentication
   matcher: [
-    ...appConfig.default.auth.protectedRoutes.map(route => `${route}/:path*`),
-    ...appConfig.default.auth.authRoutes.map(route => `${route}/:path*`),
+    '/dashboard/:path*',
+    '/profile/:path*',
+    '/auth/:path*',
   ],
 };

@@ -1,6 +1,6 @@
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui';
-import { GoogleIcon, GitHubIcon } from '@/components/assets/svg';
+import { GoogleIcon, GitHubIcon, LinkedInIcon } from '@/components/assets/svg';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
@@ -24,6 +24,18 @@ export function GithubSignInButton() {
     >
       <GitHubIcon width={21} height={21} fill="white" className='mr-2' />
       Sign in with GitHub
+    </Button>
+  );
+}
+
+export function LinkedInSignInButton() {
+  return (
+    <Button
+      onClick={() => signIn('linkedin')}
+      className="w-full mt-4 bg-[#0077B5] text-white hover:bg-[#00669D] focus:ring-4 focus:ring-[#00405C]/50 font-medium rounded-lg text-sm px-5 py-6 text-center inline-flex items-center justify-center transition-all duration-200"
+    >
+      <LinkedInIcon width={20} height={20} className='mr-2' />
+      Sign in with LinkedIn
     </Button>
   );
 }

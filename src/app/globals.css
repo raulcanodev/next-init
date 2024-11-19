@@ -93,6 +93,16 @@ body {
   font-family: var(--font-rum_raisin);
 }
 
+.font-skillet-regular {
+  font-family: var(--font-skillet_regular);
+  letter-spacing: 0.05em;
+}
+
+.font-skillet-condensed {
+  font-family: var(--font-skillet_condensed);
+  letter-spacing: 0.05em;
+}
+
 /* Avoid zoom on input focus on IOS */
 input[type="color"],
 input[type="date"],
